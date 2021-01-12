@@ -73,7 +73,8 @@ colnames(rolling) <- c("date", "reads10", "days7")
 
 
 
-# Graphs ------------------------------------------------------------------
+
+# Plot function and ref data ----------------------------------------------
 
 maxam <- 8  # morning reading should be lower than
 maxpm <- 10  # evening reading should be lower than
@@ -81,41 +82,69 @@ maxax <- ceiling(max(sugarlong$sug))
 minax <- floor(min(sugarlong$sug))
 
 
+plotter <- function(df, type = "daily", numdays = "all"){
+  # use numdays to specify time period in number of recent days
+  
+  # check that arguments are valid
+  case <- tolower(type)
+  stopifnot(case %in% c("daily", "rolling"))
+  stopifnot(is.numeric(numdays) | numdays == "all")
+  
+  # data to use according to numdays specification
+  if(numdays == "all"){
+    daystart <- min(df$date)
+    dat <- df
+  }
+  
+  else{
+    daystart <- max(df$date)-numdays 
+    stopifnot(daystart > min(df$date))
+    dat <- subset(df, subset = date >= daystart)
+  }
+  
+  # plot function
+  
+  switch(case,
+         
+         daily = ggplot(dat, aes(x = date, y = sug, colour = time)) + 
+           geom_line(size = 1) + geom_point(size = 2) + 
+           scale_y_continuous(limits = c(minax, maxax), 
+                              breaks = seq(minax, maxax, 1),
+                              labels = seq(minax, maxax, 1)),
+         
+         rolling = ggplot(dat, aes(x = date)) + 
+           geom_line(data = dat[!is.na(dat$reads10),], 
+                     aes(y = reads10, colour = "last 10 reads"), size = 1) + 
+           geom_line(data = dat[!is.na(dat$days7),], 
+                     aes(y = days7, colour = "last 7 days"), size = 1) + 
+           scale_colour_manual("rolling average", 
+                               values = c("green2", "purple"))) + 
+    
+    geom_line(aes(y = maxam), colour = "black", linetype = "dashed") + 
+    geom_line(aes(y = maxpm), colour = "black", linetype = "dotted") + 
+    scale_x_date(date_labels = "%e/%m/%Y", date_breaks = "7 days") + 
+    geom_text(mapping = aes(x = daystart, y = maxam, label = "fasting max"), 
+              vjust = 1.0, show.legend = FALSE) + 
+    geom_text(mapping = aes(x = daystart, y = maxpm, label = "true max"), 
+              vjust = 1.0, show.legend = FALSE) + 
+    labs(title = "Blood sugar monitoring", x = "Date",
+         y = "Blood glucose (mmol/L)")
+  
+}
+
+
+
+
+# Produce graphs ----------------------------------------------------------
+
 # Daily measurements with daily average
-
-dayplot <- ggplot(sugarlong, aes(x = date, y = sug, colour = time)) + 
-  geom_line(size = 1) + 
-  geom_point(size = 2) + 
-  scale_x_date(date_labels = "%e/%m/%Y", date_breaks = "7 days") +
-  scale_y_continuous(limits = c(minax, maxax), breaks = seq(minax, maxax, 1),
-                     labels = seq(minax, maxax, 1)) +
-  labs(title = "Daily blood sugar readings", x = "Date",
-       y = "Blood glucose (mmol/L)") +
-  geom_line(aes(y = maxam), colour = "black", linetype = "dashed") + 
-  geom_line(aes(y = maxpm), colour = "black", linetype = "dotted") + 
-  geom_text(mapping = aes(x = start, y = maxam, label = "max AM"), vjust = 1.0, 
-            show.legend = FALSE) + 
-  geom_text(mapping = aes(x = start, y = maxpm, label = "max PM"), vjust = 1.0, 
-            show.legend = FALSE) 
-
-print(dayplot)  
+print(plotter(sugarlong)) # all data
+print(plotter(sugarlong, numdays = 30)) # last 30 days
 
 
 # Rolling average graph
-
-rollplot <- ggplot(rolling, aes(x = date)) + 
-  geom_line(data = rolling[!is.na(rolling$reads10),], 
-            aes(y = reads10, colour = "Last 10 reads")) + 
-  geom_line(data = rolling[!is.na(rolling$days7),], 
-            aes(y = days7, colour = "Last 7 days")) +
-  geom_line(aes(y = maxam), colour = "black", linetype = "dashed") + 
-  geom_line(aes(y = maxpm), colour = "black", linetype = "dotted") + 
-  scale_colour_manual("Based on", values = c("green2", "purple")) + 
-  scale_x_date(date_labels = "%e/%m/%Y", date_breaks = "7 days") +  
-  labs(title = "Blood sugar rolling averages", x = "Date",
-       y = "Blood glucose (mmol/L)")
-  
-print(rollplot)
+print(plotter(rolling, type = "rolling")) # all data
+print(plotter(rolling, type = "rolling", numdays = 30)) # last 30 days
 
 
 
