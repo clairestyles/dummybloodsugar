@@ -29,48 +29,34 @@ rm(rawlong)
 
 # Rolling averages --------------------------------------------------------
 
-start <- as.Date("2020-11-21")
+# Average of last (complete) 7 days
 
-# 7-day average
-sugarwide$sug.7dayavg <- NA
+avebyday <- na.omit(select(sugarwide, date, sug.dayavg))
+avebyday$sug.7dayavg <- NA
 
-for(i in 1:length(sugarwide$date)){
-  today <- sugarwide$date[i]
-  weekstart <- today - 6
-  if(weekstart >= start){
-    rolldat <- sugarwide %>% filter(date %in% seq(weekstart, today, "days"))
-    sugarwide$sug.7dayavg[i] <- mean(rolldat$sug.dayavg, na.rm = TRUE)
-  }
+for(i in 7:length(avebyday$sug.dayavg)){
+  avrange <- (i-6):i
+  rolldat <- avebyday[avrange,]
+  avebyday$sug.7dayavg[i] <- mean(rolldat$sug.dayavg)
 }
-
-for(i in 1:length(sugarwide$sug.7dayavg)){
-  if(is.nan(sugarwide$sug.7dayavg[i])){
-    sugarwide$sug.7dayavg[i] <- NA
-  }
-}
-
-rm(today, weekstart)
 
 
 # Average of last 10 readings
-ave10 <- arrange(sugarlong, date, time) %>% filter(time == "am" | time == "pm")
-ave10$r10avg <- NA
+avebyread <- arrange(sugarlong, date, time) %>% filter(time == "am" | time == "pm")
+avebyread$r10avg <- NA
 
-for(i in 10:length(ave10$sug)){
-   avrange <- (i-9):i
-   rolldat <- ave10[avrange,]
-   ave10$r10avg[i] <- mean(rolldat$sug, na.rm = TRUE)
+for(i in 10:length(avebyread$sug)){
+  avrange <- (i-9):i
+  rolldat <- avebyread[avrange,]
+  avebyread$r10avg[i] <- mean(rolldat$sug, na.rm = TRUE)
 }
 rm(rolldat, avrange, i)
 
 
 # Rolling average dataframe
 
-avebyday <- na.omit(select(sugarwide, date, sug.7dayavg))
-avebyread <- na.omit(select(ave10, date, r10avg))
-rolling <- merge(avebyread, avebyday, all.x = TRUE)
+rolling <- merge(avebyread[, c(1,4)], avebyday[, c(1,3)], all.x = TRUE)
 colnames(rolling) <- c("date", "reads10", "days7")
-
 
 
 
