@@ -56,6 +56,7 @@ rm(rolldat, avrange, i)
 # Rolling average dataframe
 
 rolling <- merge(avebyread[, c(1,4)], avebyday[, c(1,3)], all.x = TRUE)
+rolling %>% filter(!is.na(r10avg) | !is.na(sug.7dayavg)) -> rolling 
 colnames(rolling) <- c("date", "reads10", "days7")
 
 
@@ -64,9 +65,6 @@ colnames(rolling) <- c("date", "reads10", "days7")
 
 line.data <- data.frame(yintercept = c(8,10), 
                         limits = c("fasting", "non-fasting"))
-maxax <- ceiling(max(sugarlong$sug))
-minax <- floor(min(sugarlong$sug))
-
 
 plotter <- function(df, type = "daily", numdays = "all"){
   # use numdays to specify time period in number of recent days
@@ -88,15 +86,19 @@ plotter <- function(df, type = "daily", numdays = "all"){
     dat <- subset(df, subset = date >= daystart)
   }
   
+  # variables for axis limits according to data subset to be plotted
+  sugdat <- na.omit(switch(case, 
+                           daily = dat[,3], 
+                           rolling = union(dat[,2], dat[,3])))
+  minax <- floor(min(sugdat)) - 0.5
+  maxax <- ceiling(max(sugdat)) + 0.5
+  
   # plot function
   
   switch(case,
          
          daily = ggplot(dat, aes(x = date, y = sug, colour = time)) + 
-           geom_line(size = 1) + geom_point(size = 2) + 
-           scale_y_continuous(limits = c(minax, maxax), 
-                              breaks = seq(minax, maxax, 1),
-                              labels = seq(minax, maxax, 1)),
+           geom_line(size = 1) + geom_point(size = 2),
          
          rolling = ggplot(dat, aes(x = date)) + 
            geom_line(data = dat[!is.na(dat$reads10),], 
@@ -107,12 +109,15 @@ plotter <- function(df, type = "daily", numdays = "all"){
                                values = c("green2", "purple"))) + 
     
     geom_hline(aes(yintercept = yintercept, linetype = limits), line.data) +  
-    scale_x_date(date_labels = "%e/%m/%Y", date_breaks = "7 days") + 
+    scale_x_date(breaks = seq(daystart, max(dat$date), 
+                              by = "7 days"), date_labels = "%e/%m/%Y") + 
+    scale_y_continuous(limits = c(minax, maxax), 
+                       breaks = seq(minax + 0.5, maxax - 0.5, 1),
+                       labels = seq(minax + 0.5, maxax - 0.5, 1)) +
     labs(title = "Blood sugar monitoring", x = "Date",
          y = "Blood glucose (mmol/L)")
   
 }
-
 
 
 
