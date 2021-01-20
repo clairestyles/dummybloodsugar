@@ -62,8 +62,8 @@ colnames(rolling) <- c("date", "reads10", "days7")
 
 # Plot function and ref data ----------------------------------------------
 
-maxam <- 8  # morning reading should be lower than
-maxpm <- 10  # evening reading should be lower than
+line.data <- data.frame(yintercept = c(8,10), 
+                        limits = c("fasting", "non-fasting"))
 maxax <- ceiling(max(sugarlong$sug))
 minax <- floor(min(sugarlong$sug))
 
@@ -106,13 +106,8 @@ plotter <- function(df, type = "daily", numdays = "all"){
            scale_colour_manual("rolling average", 
                                values = c("green2", "purple"))) + 
     
-    geom_line(aes(y = maxam), colour = "black", linetype = "dashed") + 
-    geom_line(aes(y = maxpm), colour = "black", linetype = "dotted") + 
+    geom_hline(aes(yintercept = yintercept, linetype = limits), line.data) +  
     scale_x_date(date_labels = "%e/%m/%Y", date_breaks = "7 days") + 
-    geom_text(mapping = aes(x = daystart, y = maxam, label = "fasting max"), 
-              vjust = 1.0, show.legend = FALSE) + 
-    geom_text(mapping = aes(x = daystart, y = maxpm, label = "true max"), 
-              vjust = 1.0, show.legend = FALSE) + 
     labs(title = "Blood sugar monitoring", x = "Date",
          y = "Blood glucose (mmol/L)")
   
