@@ -59,7 +59,7 @@ for(i in 1:length(avebyread$sug)){
   }
 }
 
-rm(rolldat, avrange, i)
+rm(cmltvrange, cmltvdat, rollrange, rolldat, i)
 
 
 # Rolling average dataframe
@@ -69,10 +69,12 @@ colnames(rolling) <- c("date", "reads10", "cmltv", "days7")
 
 
 
-# Plot function and ref data ----------------------------------------------
+# Plot functions and ref data ----------------------------------------------
 
 line.data <- data.frame(yintercept = c(8,10), 
                         limits = c("fasting", "non-fasting"))
+
+## Detailed line graph function with options for period of time
 
 plotter <- function(df, type = "daily", numdays = "all"){
   # use numdays to specify time period in number of recent days
@@ -86,12 +88,14 @@ plotter <- function(df, type = "daily", numdays = "all"){
   if(numdays == "all"){
     daystart <- min(df$date)
     dat <- df
+    interval <- "14 days"
   }
   
   else{
     daystart <- max(df$date)-numdays 
     stopifnot(daystart > min(df$date))
     dat <- subset(df, subset = date >= daystart)
+    interval <- "7 days"
   }
   
   # variables for axis limits according to data subset to be plotted
@@ -106,27 +110,36 @@ plotter <- function(df, type = "daily", numdays = "all"){
   switch(case,
          
          daily = ggplot(dat, aes(x = date, y = sug, colour = time)) + 
-           geom_line(size = 1) + geom_point(size = 2),
+           geom_line(size = 1) + geom_point(size = 2) + 
+           labs(title = "Daily blood sugar monitoring"),
          
          rolling = ggplot(dat, aes(x = date)) + 
            geom_line(data = dat[!is.na(dat$reads10),], 
                      aes(y = reads10, colour = "last 10 reads"), size = 1) + 
            geom_line(data = dat[!is.na(dat$days7),], 
                      aes(y = days7, colour = "last 7 days"), size = 1) + 
-           geom_line(aes(y = cmltv, colour = "cumulative total"), size = 2) +
+           geom_line(aes(y = cmltv, colour = "cumulative total"), size = 1) +
            scale_colour_manual("rolling average", 
-                               values = c("black", "green2", "purple"))) + 
+                               values = c("black", "green2", "purple")) +
+           labs(title = "Blood sugar rolling averages")) + 
     
     geom_hline(aes(yintercept = yintercept, linetype = limits), line.data) +  
     scale_x_date(breaks = seq(daystart, max(dat$date), 
-                              by = "7 days"), date_labels = "%e/%m/%Y") + 
+                              by = interval), date_labels = "%e/%m/%Y") + 
     scale_y_continuous(limits = c(minax, maxax), 
                        breaks = seq(minax + 0.5, maxax - 0.5, 1),
                        labels = seq(minax + 0.5, maxax - 0.5, 1)) +
-    labs(title = "Blood sugar monitoring", x = "Date",
-         y = "Blood glucose (mmol/L)")
+    labs(x = "Date", y = "Blood glucose (mmol/L)")
   
 }
+
+
+# Boxplot of all measurements
+boxplot <- avebyread %>% select(time, sug) %>% 
+  ggplot(aes(x = time, y = sug)) + 
+  geom_boxplot(fill = "steelblue1", na.rm = TRUE) + 
+  labs(title = "Summary of all available blood sugar measurements", 
+       x = "Time", y = "Blood glucose (mmol/L)")
 
 
 
@@ -142,4 +155,5 @@ print(plotter(rolling, type = "rolling")) # all data
 print(plotter(rolling, type = "rolling", numdays = 30)) # last 30 days
 
 
-
+# Boxplot
+print(boxplot)

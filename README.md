@@ -14,7 +14,8 @@ Raw data converted to datasets:
 * All measurements with daily average ("daily" data)
 * Rolling average of the last 7 days, last 10 measurements or cumulative total ("rolling" data)
 
-Graph function allows user to specify graph type (daily or rolling) and time period (all available data, or most recent X days).
+Main graph function allows user to specify graph type (daily or rolling) and time period (all available data, or most recent X days).  
+Boxplot of all available data also created.
 
 
 ## In the pipeline
@@ -37,7 +38,7 @@ format dd/mm/yyyy (no leading zeros) | morning (or fasting) readings | evening (
 2. Populate the sugar columns with measurements in mmol/L (standard unit for blood sugar readings in Australia). Where no data exists, leave cell blank. [Note: Graph axes will accommodate measurements in mg/dL, but will be labelled as mmol/L.] 
 
 ### Plot
-Execute the script unchanged to produce daily and rolling graphs (see above for definitions) of all available data, and the most recent 30 days of data (provided at least 30 days of data are available).  
+Execute the script unchanged to produce daily and rolling graphs (see above for definitions) of all available data and the most recent 30 days of data (provided at least 30 days of data are available), plus a summary boxplot of the total data.  
 
 To produce graphs of data for other time periods, run the final section with the desired number of days in the print(plotter()) commands.
 
