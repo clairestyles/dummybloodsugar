@@ -3,7 +3,8 @@
 # R version 4.0.3 (2020-10-10)
 
 # Packages and settings required
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
 
 theme_set(theme_minimal() +
             theme(plot.title = element_text(hjust = 0.5),
@@ -41,23 +42,30 @@ for(i in 7:length(avebyday$sug.dayavg)){
 }
 
 
-# Average of last 10 readings
+# Averages by readings: last 10, and cumulative
 avebyread <- arrange(sugarlong, date, time) %>% filter(time == "am" | time == "pm")
 avebyread$r10avg <- NA
+avebyread$cmltv <- NA
 
-for(i in 10:length(avebyread$sug)){
-  avrange <- (i-9):i
-  rolldat <- avebyread[avrange,]
-  avebyread$r10avg[i] <- mean(rolldat$sug, na.rm = TRUE)
+for(i in 1:length(avebyread$sug)){
+  cmltvrange <- 1:i
+  cmltvdat <- avebyread[cmltvrange,]
+  avebyread$cmltv[i] <- mean(cmltvdat$sug, na.rm = TRUE)
+  
+  if(i > 9){
+    rollrange <- (i-9):i
+    rolldat <- avebyread[rollrange,]
+    avebyread$r10avg[i] <- mean(rolldat$sug, na.rm = TRUE)
+  }
 }
+
 rm(rolldat, avrange, i)
 
 
 # Rolling average dataframe
 
-rolling <- merge(avebyread[, c(1,4)], avebyday[, c(1,3)], all.x = TRUE)
-rolling %>% filter(!is.na(r10avg) | !is.na(sug.7dayavg)) -> rolling 
-colnames(rolling) <- c("date", "reads10", "days7")
+rolling <- merge(avebyread[, c(1,4,5)], avebyday[, c(1,3)], all.x = TRUE)
+colnames(rolling) <- c("date", "reads10", "cmltv", "days7")
 
 
 
@@ -89,7 +97,7 @@ plotter <- function(df, type = "daily", numdays = "all"){
   # variables for axis limits according to data subset to be plotted
   sugdat <- na.omit(switch(case, 
                            daily = dat[,3], 
-                           rolling = union(dat[,2], dat[,3])))
+                           rolling = Reduce(union, dat[, -1])))
   minax <- floor(min(sugdat)) - 0.5
   maxax <- ceiling(max(sugdat)) + 0.5
   
@@ -105,8 +113,9 @@ plotter <- function(df, type = "daily", numdays = "all"){
                      aes(y = reads10, colour = "last 10 reads"), size = 1) + 
            geom_line(data = dat[!is.na(dat$days7),], 
                      aes(y = days7, colour = "last 7 days"), size = 1) + 
+           geom_line(aes(y = cmltv, colour = "cumulative total"), size = 2) +
            scale_colour_manual("rolling average", 
-                               values = c("green2", "purple"))) + 
+                               values = c("black", "green2", "purple"))) + 
     
     geom_hline(aes(yintercept = yintercept, linetype = limits), line.data) +  
     scale_x_date(breaks = seq(daystart, max(dat$date), 
